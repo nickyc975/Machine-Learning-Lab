@@ -5,14 +5,15 @@ import matplotlib.pyplot as plt
 DATA_SCALE = 500
 DIMENSION = 2
 
-SCALE = 0.1
+SCALE = 0.5
 POSITIVE = 0.8
 NEGATIVE = 0.3
 
 ETA = 1e-2
-LAMBDA = 1e-1
-DELTA = 1e-9
-ITER_COUNT = 1e2
+LAMBDA = 5
+DELTA = 1e-6
+GRADIENT_ITER_COUNT = 1e5
+NEWTON_ITER_COUNT = 1e2
 
 
 def get_data(data_scale):
@@ -33,7 +34,7 @@ def gradient_ascent(X_mat, Y_mat):
     delta = 1
     iter_count = 0
     W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
-    while delta > DELTA and iter_count < ITER_COUNT:
+    while delta > DELTA and iter_count < GRADIENT_ITER_COUNT:
         exp_xTw = numpy.exp(X_mat.T * W_mat)
         delta_mat = ETA * X_mat * (Y_mat - exp_xTw / (1 + exp_xTw))
         delta = delta_mat.T * delta_mat
@@ -46,10 +47,10 @@ def gradient_ascent_regular(X_mat, Y_mat):
     delta = 1
     iter_count = 0
     W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
-    while delta > DELTA and iter_count < ITER_COUNT:
+    while delta > DELTA and iter_count < GRADIENT_ITER_COUNT:
         exp_xTw = numpy.exp(X_mat.T * W_mat)
         delta_mat = ETA * X_mat * (Y_mat - exp_xTw / (1 + exp_xTw))
-        W_mat = W_mat - ETA * LAMBDA * W_mat + delta_mat
+        W_mat = W_mat + ETA * LAMBDA * W_mat + delta_mat
         delta = delta_mat.T * delta_mat
         iter_count += 1
     return W_mat
@@ -71,14 +72,13 @@ def newton_method(X_mat, Y_mat):
     W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
 
     try:
-        while delta > DELTA and iter_count < ITER_COUNT:
+        while delta > DELTA and iter_count < NEWTON_ITER_COUNT:
             delta_mat = df(W_mat).I * f(W_mat)
             delta = delta_mat.T * delta_mat
             W_mat = W_mat + delta_mat
             iter_count += 1
     except:
         print("Singular matrix!")
-        exit()
     
     return W_mat
 
@@ -99,51 +99,70 @@ def newton_method_regular(X_mat, Y_mat):
     W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
 
     try:
-        while delta > DELTA and iter_count < ITER_COUNT:
+        while delta > DELTA and iter_count < NEWTON_ITER_COUNT:
             delta_mat = df(W_mat).I * f(W_mat)
             delta = delta_mat.T * delta_mat
             W_mat = W_mat + delta_mat
             iter_count += 1
     except:
         print("Singular matrix!")
-        exit()
     
     return W_mat
 
 
+def statistics(Y, result):
+    right = 0
+    length = len(Y)
+    for i in range(0, length):
+        if (Y[i] == 0 and result[i] < 0) or (Y[i] == 1 and result[i] > 0):
+            right += 1
+    return float(right) / float(length)
+
+
+def classifier_line(X, W_mat):
+    return [(-x * W_mat[1, 0] / W_mat[2, 0] - W_mat[0, 0] / W_mat[2, 0]) for x in X]
+
+
 X, Y = get_data(DATA_SCALE)
-
 X_mat, Y_mat = numpy.mat(X).T, numpy.mat(Y).T
-
-W_mat = newton_method(X_mat, Y_mat)
-
-test_scale = 500
-
-right_count = 0.0
-
-test_X, test_Y = get_data(test_scale)
-
+test_X, test_Y = get_data(DATA_SCALE)
 test_X_mat, test_Y_mat = numpy.mat(test_X).T, numpy.mat(test_Y).T
 
-result_Y = list((W_mat.T * test_X_mat).T)
+W_mat_gradient = gradient_ascent(X_mat, Y_mat)
+W_mat_gradient_regular = gradient_ascent_regular(X_mat, Y_mat)
+W_mat_newton = newton_method(X_mat, Y_mat)
+W_mat_newton_regular = newton_method_regular(X_mat, Y_mat)
 
-pos_x_1 = []
-pos_x_2 = []
-neg_x_1 = []
-neg_x_2 = []
-for i in range(0, 2 * test_scale):
-    if (test_Y[i] == 0 and result_Y[i] < 0) or (test_Y[i] == 1 and result_Y[i] > 0):
-        right_count += 1.0
+gradient_result = list((W_mat_gradient.T * test_X_mat).T)
+gradient_regular_result = list((W_mat_gradient_regular.T * test_X_mat).T)
+newton_result = list((W_mat_newton.T * test_X_mat).T)
+newton_regular_result = list((W_mat_newton_regular.T * test_X_mat).T)
+
+gradient_rate = statistics(test_Y, gradient_result)
+gradient_regular_rate = statistics(test_Y, gradient_regular_result)
+newton_rate = statistics(test_Y, newton_result)
+newton_regular_rate = statistics(test_Y, newton_regular_result)
+
+X1, positive, negative = [], [], []
+for i in range(0, len(test_Y)):
     if test_Y[i] == 0:
-        neg_x_1.append(test_X[i][1])
-        neg_x_2.append(test_X[i][2])
+        negative.append(test_X[i])
     else:
-        pos_x_1.append(test_X[i][1])
-        pos_x_2.append(test_X[i][2])
+        positive.append(test_X[i])
 
-print(right_count / (test_scale * 2))
+positive = numpy.transpose(positive)
+negative = numpy.transpose(negative)
+X1.extend(positive[1])
+X1.extend(negative[1])
+
 fig, axs = plt.subplots(1, 1)
-axs.scatter(pos_x_1, pos_x_2)
-axs.scatter(neg_x_1, neg_x_2)
-axs.plot(pos_x_1 + neg_x_1, [(-x * W_mat[1, 0] / W_mat[2, 0] - W_mat[0, 0] / W_mat[2, 0]) for x in pos_x_1 + neg_x_1])
+axs.set_xlabel("x1")
+axs.set_ylabel("x2")
+axs.scatter(positive[1], positive[2], color="orange", label="Y=1")
+axs.scatter(negative[1], negative[2], color="turquoise", label="Y=0")
+axs.plot(X1, classifier_line(X1, W_mat_gradient), "green", label="gradient ascent, rate=%.2f%%" % (gradient_rate * 100))
+axs.plot(X1, classifier_line(X1, W_mat_gradient_regular), "red", label="gradient ascent with regular term, rate=%.2f%%" % (gradient_regular_rate * 100))
+axs.plot(X1, classifier_line(X1, W_mat_newton), "blue", label="newton method, rate=%.2f%%" % (newton_rate * 100))
+axs.plot(X1, classifier_line(X1, W_mat_newton_regular), "yellowgreen", label="newton method with regular term, rate=%.2f%%" % (newton_regular_rate * 100))
+axs.legend()
 plt.show()
