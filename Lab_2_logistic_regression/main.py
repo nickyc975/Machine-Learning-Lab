@@ -1,10 +1,11 @@
 import numpy
 import numpy.matlib
+import matplotlib.pyplot as plt
 
-DATA_SCALE = 1000
-DIMENSION = 10
+DATA_SCALE = 500
+DIMENSION = 2
 
-SCALE = 0.5
+SCALE = 0.1
 POSITIVE = 0.8
 NEGATIVE = 0.3
 
@@ -116,7 +117,7 @@ X_mat, Y_mat = numpy.mat(X).T, numpy.mat(Y).T
 
 W_mat = newton_method(X_mat, Y_mat)
 
-test_scale = 1000
+test_scale = 500
 
 right_count = 0.0
 
@@ -126,8 +127,23 @@ test_X_mat, test_Y_mat = numpy.mat(test_X).T, numpy.mat(test_Y).T
 
 result_Y = list((W_mat.T * test_X_mat).T)
 
+pos_x_1 = []
+pos_x_2 = []
+neg_x_1 = []
+neg_x_2 = []
 for i in range(0, 2 * test_scale):
     if (test_Y[i] == 0 and result_Y[i] < 0) or (test_Y[i] == 1 and result_Y[i] > 0):
         right_count += 1.0
+    if test_Y[i] == 0:
+        neg_x_1.append(test_X[i][1])
+        neg_x_2.append(test_X[i][2])
+    else:
+        pos_x_1.append(test_X[i][1])
+        pos_x_2.append(test_X[i][2])
 
 print(right_count / (test_scale * 2))
+fig, axs = plt.subplots(1, 1)
+axs.scatter(pos_x_1, pos_x_2)
+axs.scatter(neg_x_1, neg_x_2)
+axs.plot(pos_x_1 + neg_x_1, [(-x * W_mat[1, 0] / W_mat[2, 0] - W_mat[0, 0] / W_mat[2, 0]) for x in pos_x_1 + neg_x_1])
+plt.show()
