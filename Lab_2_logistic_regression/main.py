@@ -2,6 +2,9 @@ import numpy
 import numpy.matlib
 import matplotlib.pyplot as plt
 
+import data as data_set
+
+
 DATA_SCALE = 500
 DIMENSION = 2
 
@@ -44,7 +47,7 @@ def gradient_ascent(X_mat, Y_mat):
     """
     delta = 1
     iter_count = 0
-    W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
+    W_mat = numpy.matlib.zeros((X_mat.shape[0], 1))
     while delta > DELTA and iter_count < GRADIENT_ITER_COUNT:
         exp_xTw = numpy.exp(X_mat.T * W_mat)
         delta_mat = ETA * X_mat * (Y_mat - exp_xTw / (1 + exp_xTw))
@@ -63,7 +66,7 @@ def gradient_ascent_regular(X_mat, Y_mat):
     """
     delta = 1
     iter_count = 0
-    W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
+    W_mat = numpy.matlib.zeros((X_mat.shape[0], 1))
     while delta > DELTA and iter_count < GRADIENT_ITER_COUNT:
         exp_xTw = numpy.exp(X_mat.T * W_mat)
         delta_mat = ETA * X_mat * (Y_mat - exp_xTw / (1 + exp_xTw))
@@ -97,12 +100,12 @@ def newton_method(X_mat, Y_mat):
         """
         exp_xTw = numpy.exp(X_mat.T * W_mat)
         A = numpy.multiply((exp_xTw / (1 + exp_xTw)), (1 / (1 + exp_xTw)))
-        EA = numpy.multiply(numpy.identity(2 * DATA_SCALE), A)
+        EA = numpy.multiply(numpy.identity(X_mat.shape[1]), A)
         return X_mat * EA * X_mat.T
 
     delta = 1
     iter_count = 0
-    W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
+    W_mat = numpy.matlib.zeros((X_mat.shape[0], 1))
 
     try:
         while delta > DELTA and iter_count < NEWTON_ITER_COUNT:
@@ -140,12 +143,12 @@ def newton_method_regular(X_mat, Y_mat):
         """
         exp_xTw = numpy.exp(X_mat.T * W_mat)
         A = numpy.multiply((exp_xTw / (1 + exp_xTw)), (1 / (1 + exp_xTw)))
-        EA = numpy.multiply(numpy.identity(2 * DATA_SCALE), A)
+        EA = numpy.multiply(numpy.identity(X_mat.shape[1]), A)
         return X_mat * EA * X_mat.T
 
     delta = 1
     iter_count = 0
-    W_mat = numpy.matlib.zeros((DIMENSION + 1, 1))
+    W_mat = numpy.matlib.zeros((X_mat.shape[0], 1))
 
     try:
         while delta > DELTA and iter_count < NEWTON_ITER_COUNT:
@@ -184,10 +187,35 @@ def classifier_line(X, W_mat):
     return [(-x * W_mat[1, 0] / W_mat[2, 0] - W_mat[0, 0] / W_mat[2, 0]) for x in X]
 
 
+def parse_data(data):
+    """
+    Parse data from UCI.
+
+    :param data: data from UCI.
+    """
+    testing_X, testing_Y = [], []
+    training_X, training_Y = [], []
+    for i in range(0, len(data)):
+        data[i].insert(0, 1)
+        if i % 2 == 0:
+            training_X.append(data[i][0:-1])
+            training_Y.append(data[i][-1])
+        else:
+            testing_X.append(data[i][0:-1])
+            testing_Y.append(data[i][-1])
+    return training_X, training_Y, testing_X, testing_Y
+        
+
 # Generate training data and testing data.
+
+# Generate data.
 X, Y = get_data(DATA_SCALE)
-X_mat, Y_mat = numpy.mat(X).T, numpy.mat(Y).T
 test_X, test_Y = get_data(DATA_SCALE)
+
+# Use UCI data.
+# X, Y, test_X, test_Y = parse_data(data_set.data)
+
+X_mat, Y_mat = numpy.mat(X).T, numpy.mat(Y).T
 test_X_mat, test_Y_mat = numpy.mat(test_X).T, numpy.mat(test_Y).T
 
 # Call optimizing methods.
