@@ -4,9 +4,10 @@ from mnist import MNIST
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-DATA_SCALE = 500
+DATA_SCALE = 100
 MEANS = [1, 2, 3]
 VARIANCES = [0.5, 0.3, 0.1]
+
 
 def generate_data(means, variances, data_scale):
     return numpy.random.normal(means, variances, (data_scale, len(means)))
@@ -18,8 +19,13 @@ def pca(x, k):
     covariance = numpy.cov(centralized_x, rowvar=0)
     eigenvalues, eigenvectors = numpy.linalg.eig(covariance)
     sorted_indices = numpy.argsort(eigenvalues)
-    top_k_eigvecs = eigenvectors[:, sorted_indices[:-k-1:-1]]
-    return numpy.dot(numpy.dot(centralized_x, top_k_eigvecs), top_k_eigvecs.T) + mean
+    return eigenvectors[:, sorted_indices[: -k - 1 : -1]]
+
+
+def reconstruct(x, eigvectors):
+    mean = x.mean(axis=0)
+    centralized_x = x - mean
+    return numpy.dot(numpy.dot(centralized_x, eigvectors), eigvectors.T) + mean
 
 
 def construct_img(images, col, row, width, heigth):
@@ -30,32 +36,37 @@ def construct_img(images, col, row, width, heigth):
     return image
 
 
-def process_images():
-    org_images, labels = MNIST("./minist", return_type="numpy").load_testing()
+def parse_mnist(mnist_dir, number):
+    i = 0
     images = []
-    for i in range(1000):
-        if labels[i] == 7 and len(images) < 100:
-            images.append(org_images[i])
-    
+    image_arrays, labels = MNIST(mnist_dir, return_type="numpy").load_testing()
+    while i < len(labels) and len(images) < 200:
+        if labels[i] == number:
+            images.append(image_arrays[i])
+        i += 1
+
     images = numpy.asarray(images)
-    image = construct_img(images, 10, 10, 28, 28)
-    image.show()
-    
-    new_image = construct_img(pca(images, 1), 10, 10, 28, 28)
-    new_image.show()
-    return
+    return images[0:100], images[100:200]
 
 
-process_images()
+NUMBER = 6
+USE_EIGVEC_NUM = 1
+MNIST_DIR = "./Lab_4_pca/minist"
 
+training_images, testing_images = parse_mnist(MNIST_DIR, NUMBER)
+recon_testing_images = reconstruct(testing_images, pca(training_images, USE_EIGVEC_NUM))
 
-data = generate_data(MEANS, VARIANCES, DATA_SCALE).T
-projected_data = pca(data.T, len(MEANS) - 1).T
+construct_img(testing_images, 10, 10, 28, 28).save("testing.bmp")
+construct_img(recon_testing_images, 10, 10, 28, 28).save("recon_testing.bmp")
 
-axs1 = plt.subplot(111, projection='3d')
+data = generate_data(MEANS, VARIANCES, DATA_SCALE)
+projected_data = reconstruct(data, pca(data, len(MEANS) - 1)).T
+
+data_T = data.T
+axs1 = plt.subplot(111, projection="3d")
 axs1.set_xlim(MEANS[0] - 1, MEANS[0] + 1)
 axs1.set_ylim(MEANS[1] - 1, MEANS[1] + 1)
 axs1.set_zlim(MEANS[2] - 1, MEANS[2] + 1)
-axs1.scatter(data[0], data[1], data[2])
+axs1.scatter(data_T[0], data_T[1], data_T[2])
 axs1.scatter(projected_data[0], projected_data[1], projected_data[2])
 plt.show()
