@@ -2,10 +2,10 @@ import numpy
 import numpy.matlib
 import matplotlib.pyplot as plt
 
-CLS_NUM = 4
-SAMPLES_PER_CLS = 1000
-MEANS = [[1, 1], [-1, 1], [1, -1], [-1, -1]]
-SCALES = [[0.1, 0.1], [0.2, 0.2], [0.3, 0.3], [0.4, 0.4]]
+CLS_NUM = 5
+SAMPLES_PER_CLS = 500
+MEANS = [[0, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]
+SCALES = [[0.1, 0.1], [0.2, 0.2], [0.3, 0.3], [0.4, 0.4], [0.5, 0.5]]
 
 DELTA = 1e-9
 ITER_COUNT = 1e9
@@ -192,13 +192,18 @@ for i in range(0, len(data_set)):
     cls_index = gammas[i].tolist().index(numpy.max(gammas[i]))
     gmm_result[cls_index].append(data_set[i])
 
-fig, (axs1, axs2) = plt.subplots(1, 2)
+fig, (axs1, axs2, axs3) = plt.subplots(1, 3)
 for i in range(0, len(k_means_result)):
+    data = numpy.transpose(clustered_data_set[i])
     gmm_data = numpy.transpose(gmm_result[i])
     k_means_data = numpy.transpose(k_means_result[i])
-    axs1.scatter(k_means_data[0], k_means_data[1])
-    axs2.scatter(gmm_data[0], gmm_data[1])
-    axs1.scatter(k_means_means[i][0], k_means_means[i][1])
-    axs2.scatter(gmm_means[i][0], gmm_means[i][1])
+
+    axs1.scatter(data[0], data[1])
+    axs2.scatter(k_means_data[0], k_means_data[1])
+    axs3.scatter(gmm_data[0], gmm_data[1])
+
+    axs1.scatter(MEANS[i][0], MEANS[i][1])
+    axs2.scatter(k_means_means[i][0], k_means_means[i][1])
+    axs3.scatter(gmm_means[i][0], gmm_means[i][1])
 
 plt.show()
